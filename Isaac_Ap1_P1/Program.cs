@@ -1,4 +1,6 @@
 using Isaac_Ap1_P1.Components;
+using Isaac_Ap1_P1.DAL;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -6,6 +8,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+var constr = builder.Configuration.GetConnectionString("constr");
+builder.Services.AddDbContextFactory<Contexto>(o=>o.UseSqlite(constr));
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
