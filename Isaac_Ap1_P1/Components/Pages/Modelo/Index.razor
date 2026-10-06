@@ -1,5 +1,160 @@
-﻿<h3>Index</h3>
+﻿@page "/Autores/Index"
+@rendermode InteractiveServer
+@inject AutoresService autoresService
+
+<PageTitle>Consulta de Autores</PageTitle>
+
+<div class="container">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h3 class="mb-0">Consulta de Autores</h3>
+            <a class="btn btn-light" href="/Autores/Create">+ Nuevo</a>
+        </div>
+
+        <div class="card-body">
+
+            <div class="row g-2 mb-3">
+                <div class="col-md-2">
+                    <label class="form-label">Filtrar por</label>
+                    <select class="form-select" @bind="filtro">
+                        <option value="@nameof(Autores.IdAutor)">IdAutor</option>
+                        <option value="@nameof(Autores.Nombres)">Nombres</option>
+                        <option value="@nameof(Autores.Nacionalidad)">Nacionalidad</option>
+                        <option value="@nameof(Autores.Sueldo)">Sueldo</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Valor</label>
+                    <input class="form-control" @bind="valorFiltro" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Nacidos desde</label>
+                    <input type="date" class="form-control" @bind="desde" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Nacidos hasta</label>
+                    <input type="date" class="form-control" @bind="hasta" />
+                </div>
+                <div class="col-md-3 d-flex align-items-end gap-1">
+                    <button class="btn btn-primary" @onclick="Buscar">Buscar</button>
+                    <button class="btn btn-outline-secondary" @onclick="Limpiar">Limpiar</button>
+                </div>
+            </div>
+
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>IdAutor</th>
+                        <th>Nombres</th>
+                        <th>Nacionalidad</th>
+                        <th>Fecha Nacimiento</th>
+                        <th class="text-end">Sueldo</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var a in ListaAutores)
+                    {
+                        <tr>
+                            <td>@a.IdAutor</td>
+                            <td>@a.Nombres</td>
+                            <td>@a.Nacionalidad</td>
+                            <td>@a.FechaNacimiento.ToString("dd/MM/yyyy")</td>
+                            <td class="text-end">@a.Sueldo.ToString("N2")</td>
+                            <td class="text-center">
+                                @if (IdPorEliminar == a.IdAutor)
+                                {
+                                    <span class="me-1">¿Seguro?</span>
+                                    <button class="btn btn-sm btn-danger" @onclick="() => Eliminar(a.IdAutor)">Sí</button>
+                                    <button class="btn btn-sm btn-secondary" @onclick="CancelarEliminar">No</button>
+                                }
+                                else
+                                {
+                                    <a class="btn btn-sm btn-warning" href="/Autores/Edit/@a.IdAutor">Editar</a>
+                                    <button class="btn btn-sm btn-danger" @onclick="() => PedirConfirmacion(a.IdAutor)">Eliminar</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+
+                <tfoot>
+                    <tr class="table-secondary fw-bold">
+                        <td colspan="2">Cantidad de autores: @ListaAutores.Count</td>
+                        <td colspan="2" class="text-end">Total sueldos:</td>
+                        <td class="text-end">@ListaAutores.Sum(a => a.Sueldo).ToString("N2")</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
 
 @code {
+    public List<Autores> ListaAutores { get; set; } = new();
 
+    public string filtro { get; set; } = nameof(Autores.Nombres);
+    public string? valorFiltro { get; set; }
+    public DateTime? desde { get; set; }
+    public DateTime? hasta { get; set; }
+
+    public int? IdPorEliminar { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Buscar();
+    }
+
+    public async Task Buscar()
+    {
+        var lista = await autoresService.Listar(a => true);
+
+        if (desde.HasValue && hasta.HasValue)
+        {
+            lista = lista.Where(a => a.FechaNacimiento >= desde && a.FechaNacimiento <= hasta).ToList();
+        }
+
+        if (!string.IsNullOrEmpty(valorFiltro))
+        {
+            if (filtro == nameof(Autores.IdAutor) && int.TryParse(valorFiltro, out int id))
+            {
+                lista = lista.Where(a => a.IdAutor == id).ToList();
+            }
+            else if (filtro == nameof(Autores.Nombres))
+            {
+                lista = lista.Where(a => a.Nombres != null && a.Nombres.Contains(valorFiltro, StringComparison.OrdinalIgnoreCase)).ToList();
+            }
+            else if (filtro == nameof(Autores.Nacionalidad))
+            {
+                lista = lista.Where(a => a.Nacionalidad != null && a.Nacionalidad.Contains(valorFiltro, StringComparison.OrdinalIgnoreCase)).ToList();
+            }
+            else if (filtro == nameof(Autores.Sueldo) && decimal.TryParse(valorFiltro, out decimal sueldo))
+            {
+                lista = lista.Where(a => a.Sueldo == sueldo).ToList();
+            }
+        }
+
+        ListaAutores = lista;
+    }
+
+    private async Task Limpiar()
+    {
+        filtro = nameof(Autores.Nombres);
+        valorFiltro = null;
+        desde = null;
+        hasta = null;
+        await Buscar();
+    }
+
+    private void PedirConfirmacion(int id) => IdPorEliminar = id;
+
+    private void CancelarEliminar() => IdPorEliminar = null;
+
+    private async Task Eliminar(int id)
+    {
+        await autoresService.Eliminar(id);
+        IdPorEliminar = null;
+        await Buscar();
+    }
 }

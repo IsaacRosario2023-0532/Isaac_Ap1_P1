@@ -1,5 +1,126 @@
-﻿<h3>Edit</h3>
+﻿@page "/Autores/Edit/{AutorId:int}"
+@rendermode InteractiveServer
+@inject AutoresService autoresService
+@inject NavigationManager nav
+
+<PageTitle>Editar Autor</PageTitle>
+
+<div class="container">
+    <div class="card shadow">
+        <div class="card-header bg-warning">
+            <h3 class="mb-0">Editar Autor</h3>
+        </div>
+
+        @if (Autor == null)
+        {
+            <div class="card-body">
+                <div class="alert alert-danger">No se encontró el autor.</div>
+                <a class="btn btn-secondary" href="/Autores/Index">Volver</a>
+            </div>
+        }
+        else
+        {
+            <EditForm Model="Autor" OnValidSubmit="Guardar">
+                <DataAnnotationsValidator />
+
+                <div class="card-body">
+
+                    <div class="mb-3">
+                        <label class="form-label">IdAutor</label>
+                        <InputNumber class="form-control" @bind-Value="Autor.IdAutor" disabled />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Nombres</label>
+                        <InputText class="form-control" @bind-Value="Autor.Nombres" />
+                        <ValidationMessage For="@(() => Autor.Nombres)" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Nacionalidad</label>
+                        <InputText class="form-control" @bind-Value="Autor.Nacionalidad" />
+                        <ValidationMessage For="@(() => Autor.Nacionalidad)" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Fecha de Nacimiento</label>
+                        <InputDate class="form-control" @bind-Value="Autor.FechaNacimiento" />
+                        <ValidationMessage For="@(() => Autor.FechaNacimiento)" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Sueldo</label>
+                        <InputNumber class="form-control" @bind-Value="Autor.Sueldo" />
+                        <ValidationMessage For="@(() => Autor.Sueldo)" />
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(Mensaje))
+                    {
+                        <div class="alert alert-danger">@Mensaje</div>
+                    }
+
+                    @if (ConfirmandoEliminar)
+                    {
+                        <div class="alert alert-warning d-flex justify-content-between align-items-center">
+                            <span>¿Seguro que deseas eliminar este autor?</span>
+                            <span>
+                                <button type="button" class="btn btn-sm btn-danger" @onclick="Eliminar">Sí, eliminar</button>
+                                <button type="button" class="btn btn-sm btn-secondary" @onclick="CancelarEliminar">Cancelar</button>
+                            </span>
+                        </div>
+                    }
+                </div>
+
+                <div class="card-footer text-end">
+                    <a class="btn btn-secondary" href="/Autores/Index">Volver</a>
+                    <button type="submit" class="btn btn-success">Guardar</button>
+                    <button type="button" class="btn btn-danger" @onclick="PedirConfirmacion">Eliminar</button>
+                </div>
+            </EditForm>
+        }
+    </div>
+</div>
 
 @code {
+    [Parameter]
+    public int AutorId { get; set; }
 
+    public Autores? Autor { get; set; }
+    public string Mensaje { get; set; } = string.Empty;
+    public bool ConfirmandoEliminar { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Autor = await autoresService.Buscar(AutorId);
+    }
+
+    private async Task Guardar()
+    {
+        if (Autor == null) return;
+
+        if (string.IsNullOrWhiteSpace(Autor.Nombres))
+        {
+            Mensaje = "El campo Nombres es obligatorio.";
+            return;
+        }
+
+        if (await autoresService.Guardar(Autor))
+            nav.NavigateTo("/Autores/Index");
+        else
+            Mensaje = "No se pudo guardar el autor.";
+    }
+
+    private void PedirConfirmacion() => ConfirmandoEliminar = true;
+
+    private void CancelarEliminar() => ConfirmandoEliminar = false;
+
+    private async Task Eliminar()
+    {
+        if (Autor == null) return;
+
+        if (await autoresService.Eliminar(Autor.IdAutor))
+            nav.NavigateTo("/Autores/Index");
+        else
+            Mensaje = "No se pudo eliminar el autor.";
+    }
 }

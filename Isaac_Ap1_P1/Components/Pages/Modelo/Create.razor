@@ -1,5 +1,81 @@
-﻿<h3>Create</h3>
+﻿@page "/Autores/Create"
+@rendermode InteractiveServer
+@inject AutoresService autoresService
+@inject NavigationManager nav
+
+<PageTitle>Crear Autor</PageTitle>
+
+<div class="container">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h3 class="mb-0">Crear Autor</h3>
+        </div>
+
+        <EditForm Model="Autor" OnValidSubmit="Guardar">
+            <DataAnnotationsValidator />
+
+            <div class="card-body">
+
+                <div class="mb-3">
+                    <label class="form-label">Nombres</label>
+                    <InputText class="form-control" @bind-Value="Autor.Nombres" />
+                    <ValidationMessage For="@(() => Autor.Nombres)" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Nacionalidad</label>
+                    <InputText class="form-control" @bind-Value="Autor.Nacionalidad" />
+                    <ValidationMessage For="@(() => Autor.Nacionalidad)" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Fecha de Nacimiento</label>
+                    <InputDate class="form-control" @bind-Value="Autor.FechaNacimiento" />
+                    <ValidationMessage For="@(() => Autor.FechaNacimiento)" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Sueldo</label>
+                    <InputNumber class="form-control" @bind-Value="Autor.Sueldo" />
+                    <ValidationMessage For="@(() => Autor.Sueldo)" />
+                </div>
+
+                @if (!string.IsNullOrEmpty(Mensaje))
+                {
+                    <div class="alert alert-danger">@Mensaje</div>
+                }
+            </div>
+
+            <div class="card-footer text-end">
+                <a class="btn btn-secondary" href="/Autores/Index">Volver</a>
+                <button type="button" class="btn btn-outline-primary" @onclick="Nuevo">Nuevo</button>
+                <button type="submit" class="btn btn-success">Guardar</button>
+            </div>
+        </EditForm>
+    </div>
+</div>
 
 @code {
+    public Autores Autor { get; set; } = new();
+    public string Mensaje { get; set; } = string.Empty;
 
+    private void Nuevo()
+    {
+        Autor = new Autores();
+        Mensaje = string.Empty;
+    }
+
+    private async Task Guardar()
+    {
+        if (string.IsNullOrWhiteSpace(Autor.Nombres))
+        {
+            Mensaje = "El campo Nombres es obligatorio.";
+            return;
+        }
+
+        if (await autoresService.Guardar(Autor))
+            nav.NavigateTo("/Autores/Index");
+        else
+            Mensaje = "No se pudo guardar el autor.";
+    }
 }
